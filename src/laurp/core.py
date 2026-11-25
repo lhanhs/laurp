@@ -1,10 +1,5 @@
-# core.py provides core functionality for the helper. Intended for internal use only.
-import shutil
-import platform
-import subprocess
-import sys
-from pathlib import Path
-from datetime import datetime
+# core.py provides core functionality for the helper and is intended for internal use only.
+import requests
 
 def makelogfile():
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f")
@@ -20,7 +15,7 @@ def platformcheck() -> bool:
     }
     return "arch" in ids and shutil.which("pacman") is not None
 
-def logsp(command: list[str], logfile: str) -> int:
+def logsp(command: list[str], logfile: str, verbose=1) -> int:
     with open(logfile, "a") as log:
         process = subprocess.Popen(
             command,
@@ -29,10 +24,21 @@ def logsp(command: list[str], logfile: str) -> int:
             text=True
         )
         exitcode = process.wait()
-        print(f"Log file saved to {logfile}")
+        if verbose:
+            print(f"Log file saved to {logfile}")
         return exitcode
 
 def checkdeps():
     required = ["git", "makepkg", "pacman"]
     missing = [cmd for cmd in required if shutil.which(cmd) is None]
     return missing
+
+# NETWORKING
+# For now, networking only accepts package strings. List handling will be added later.
+def networking(action: str, package: str):
+    # Actions: search, info
+    url = f"https://aur.archlinux.org/rpc/v5/{action}/" + package
+    response = requests.get(url)
+    response.raise_for_status()
+    return response.json()["results"]
+
